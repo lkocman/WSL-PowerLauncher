@@ -45,7 +45,7 @@ function WslConfigureDistribution ($distributionName, $defaultUID, $wslDistribut
     }
     public static extern bool WslIsDistributionRegistered(string distributionName, uint defaultUID, WSL_DISTRIBUTION_FLAGS wslDistributionFlags);
 '@
-    $WslApi = Add-Type -MemberDefinition $Source -Name "Wslapi" -PassThru
+    $WslApi = Add-Type -MemberDefinition $Source -Name "WslapiWslConfigureDistribution" -PassThru
     return $WslApi::WslIsDistributionRegistered($distributionName, $defaultUID, $wslDistributionFlags)
 }
 
@@ -59,7 +59,7 @@ function WslIsDistributionRegistered ($distributionName){
     [DllImport("wslapi.dll", CharSet = CharSet.Unicode)]
     public static extern bool WslIsDistributionRegistered(string distributionName);
 '@
-    $WslApi = Add-Type -MemberDefinition $Source -Name "Wslapi" -PassThru
+    $WslApi = Add-Type -MemberDefinition $Source -Name "WslapiDistributionRegistered" -PassThru
     return $WslApi::WslIsDistributionRegistered($distributionName)
 }
 
@@ -73,8 +73,8 @@ function WslRegisterDistribution ($distributionName, $tarGzFilename){
     [DllImport("wslapi.dll", CharSet = CharSet.Unicode)]
     public static extern uint WslRegisterDistribution(string distributionName, string tarGzFilename);
 '@
-    $WslApi=Add-Type -MemberDefinition $Source -Name 'Wslapi' -PassThru
-    return $WslApi::WslRegisterDistribution($distributionName, $tarGzFilename);
+    $WslApi=Add-Type -MemberDefinition $Source -Name 'WslapiRegisterDistribution' -PassThru
+    return $WslApi::WslRegisterDistribution($distributionName, $tarGzFilename)
 }
 
 # HRESULT WslLaunch(
@@ -105,14 +105,22 @@ function WslUnregisterDistribution ($distributionName) {
 
     public static extern uint WslUnregisterDistribution(string distributionName);
 '@
-    $WslApi=Add-Type -MemberDefinition $Source -Name 'Wslapi' -PassThru
-    return $WslApi::WslUnregisterDistribution($distributionName);
+    $WslApi=Add-Type -MemberDefinition $Source -Name 'WslapiUnregisterDistributio' -PassThru
+    return $WslApi::WslUnregisterDistribution($distributionName)
+}
+
+$wslapidllPath = "C:\Windows\System32\wslapi.dll"
+if (-not (Test-Path $wslapidllPath)) {
+    "Error: $wslapidllPath was not found. Exiting"
+    exit 1
 }
 
 $distributionName = "PowerLauncherTestDistro 1.0"
 $tarGzPath = "install.tar.gz"
-$wslApiFlags=Add-Type -MemberDefinition $WSL_DISTRIBUTION_FLAGS -Name 'Wslapi' -PassThru
+$distributionDefUUID = 500
+$wslApiFlags=Add-Type -MemberDefinition $WSL_DISTRIBUTION_FLAGS -Name 'WslapiDistributionFlags' -PassThru
 $distributionFlags = $wslApiFlags::WSL_DISTRIBUTION_FLAGS(0)
 
-WslIsDistributionRegistered($distributionName);
-WslRegisterDistribution($distributionName, )
+WslIsDistributionRegistered($distributionName)
+WslRegisterDistribution($distributionName, $tarGzPath)
+WslConfigureDistribution($distributionName, $distributionDefUUID, $distributionFlags)
