@@ -8,6 +8,16 @@
 #  WSL_DISTRIBUTION_FLAGS_ENABLE_DRIVE_MOUNTING
 #} WSL_DISTRIBUTION_FLAGS;
 
+$WSL_DISTRIBUTION_FLAGS = @'
+[DllImport("wslapi.dll", CharSet = CharSet.Unicode)]
+public enum WSL_DISTRIBUTION_FLAGS {
+    WSL_DISTRIBUTION_FLAGS_NONE,
+    WSL_DISTRIBUTION_FLAGS_ENABLE_INTEROP,
+    WSL_DISTRIBUTION_FLAGS_APPEND_NT_PATH,
+    WSL_DISTRIBUTION_FLAGS_ENABLE_DRIVE_MOUNTING
+}
+'@
+
 #HRESULT WslGetDistributionConfiguration(
 #  PCWSTR                 distributionName,
 #  ULONG                  *distributionVersion,
@@ -23,6 +33,21 @@
 #  ULONG                  defaultUID,
 #  WSL_DISTRIBUTION_FLAGS wslDistributionFlags
 #);
+
+function WslConfigureDistribution ($distributionName, $defaultUID, $wslDistributionFlags) {
+    $Source =@'
+    [DllImport("wslapi.dll", CharSet = CharSet.Unicode)]
+    public enum WSL_DISTRIBUTION_FLAGS {
+        WSL_DISTRIBUTION_FLAGS_NONE,
+        WSL_DISTRIBUTION_FLAGS_ENABLE_INTEROP,
+        WSL_DISTRIBUTION_FLAGS_APPEND_NT_PATH,
+        WSL_DISTRIBUTION_FLAGS_ENABLE_DRIVE_MOUNTING
+    }
+    public static extern bool WslIsDistributionRegistered(string distributionName, uint defaultUID, WSL_DISTRIBUTION_FLAGS wslDistributionFlags);
+'@
+    $WslApi = Add-Type -MemberDefinition $Source -Name "Wslapi" -PassThru
+    return $WslApi::WslIsDistributionRegistered($distributionName, $defaultUID, $wslDistributionFlags)
+}
 
 
 #BOOL WslIsDistributionRegistered(
@@ -49,7 +74,7 @@ function WslRegisterDistribution ($distributionName, $tarGzFilename){
     public static extern uint WslRegisterDistribution(string distributionName, string tarGzFilename);
 '@
     $WslApi=Add-Type -MemberDefinition $Source -Name 'Wslapi' -PassThru
-    return $WslApi::WslRegisterDistribution("$distributionName", "$tarGzFilename");
+    return $WslApi::WslRegisterDistribution($distributionName, $tarGzFilename);
 }
 
 # HRESULT WslLaunch(
@@ -74,6 +99,20 @@ function WslRegisterDistribution ($distributionName, $tarGzFilename){
 #  PCWSTR distributionName
 #);
 
-$distribution_name = "openSUSE Leap 15.2"
+function WslUnregisterDistribution ($distributionName) {
+    $Source =@'
+    [DllImport("wslapi.dll", CharSet = CharSet.Unicode)]
 
-WslIsDistributionRegistered($distribution_name);
+    public static extern uint WslUnregisterDistribution(string distributionName);
+'@
+    $WslApi=Add-Type -MemberDefinition $Source -Name 'Wslapi' -PassThru
+    return $WslApi::WslUnregisterDistribution($distributionName);
+}
+
+$distributionName = "PowerLauncherTestDistro 1.0"
+$tarGzPath = "install.tar.gz"
+$wslApiFlags=Add-Type -MemberDefinition $WSL_DISTRIBUTION_FLAGS -Name 'Wslapi' -PassThru
+$distributionFlags = $wslApiFlags::WSL_DISTRIBUTION_FLAGS(0)
+
+WslIsDistributionRegistered($distributionName);
+WslRegisterDistribution($distributionName, )
